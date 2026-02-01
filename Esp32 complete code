@@ -1,0 +1,75 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+
+// WiFi credentials
+const char* ssid = "YOUR_WIFI_NAME";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+// ML Cloud API URL
+const char* ml_api_url = "http://your-cloud-server/predict";
+
+void setup() {
+  Serial.begin(115200);
+
+  // Connect WiFi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi connected");
+}
+
+void loop() {
+  if (WiFi.status() == WL_CONNECTED) {
+
+    // Example sensor values
+    float temperature = 34.5;
+    float humidity = 62.3;
+    int smoke = 180;
+
+    HTTPClient http;
+    http.begin(ml_api_url);
+    http.addHeader("Content-Type", "application/json");
+
+    // Create JSON payload
+    StaticJsonDocument<200> jsonDoc;
+    jsonDoc["temperature"] = temperature;
+    jsonDoc["humidity"] = humidity;
+    jsonDoc["smoke"] = smoke;
+
+    String requestBody;
+    serializeJson(jsonDoc, requestBody);
+
+    // Send POST request
+    int httpResponseCode = http.POST(requestBody);
+
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println("ML Response:");
+      Serial.println(response);
+
+      // Parse response
+      StaticJsonDocument<200> responseDoc;
+      deserializeJson(responseDoc, response);
+      const char* fireRisk = responseDoc["fire_risk"];
+
+      Serial.print("Fire Risk Level: ");
+      Serial.println(fireRisk);
+
+      // Action based on ML output
+      if (strcmp(fireRisk, "HIGH") == 0) {
+        Serial.println("🔥 ALERT: High Fire Risk Detected!");
+      }
+    } 
+    else {
+      Serial.println("Error sending data to ML cloud");
+    }
+
+    http.end();
+  }
+
+  delay(5000); // Send data every 5 seconds
+}
