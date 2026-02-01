@@ -1,0 +1,53 @@
+#include <WiFi.h>
+#include <Firebase_ESP_Client.h>
+
+// WiFi credentials
+#define WIFI_SSID "YOUR_WIFI_NAME"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+
+// Firebase credentials
+#define API_KEY "YOUR_FIREBASE_API_KEY"
+#define DATABASE_URL "https://your-project-id.firebaseio.com/"
+
+// Firebase objects
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+
+void setup() {
+  Serial.begin(115200);
+
+  // Connect WiFi
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(300);
+  }
+  Serial.println("\nWiFi Connected");
+
+  // Firebase config
+  config.api_key = API_KEY;
+  config.database_url = DATABASE_URL;
+
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+}
+
+void loop() {
+  // Example sensor values
+  float temperature = 33.2;
+  float humidity = 65.4;
+  int smoke = 140;
+  String fireRisk = "HIGH";
+
+  // Upload to Firebase
+  Firebase.RTDB.setFloat(&fbdo, "/ForestData/temperature", temperature);
+  Firebase.RTDB.setFloat(&fbdo, "/ForestData/humidity", humidity);
+  Firebase.RTDB.setInt(&fbdo, "/ForestData/smoke", smoke);
+  Firebase.RTDB.setString(&fbdo, "/ForestData/fireRisk", fireRisk);
+
+  Serial.println("Data uploaded to cloud");
+
+  delay(5000); // send every 5 seconds
+}
